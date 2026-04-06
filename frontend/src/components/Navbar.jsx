@@ -27,7 +27,7 @@ export default function Navbar() {
             <div className="navbar-inner container">
                 <Link to="/" className="navbar-logo">
                     <Sparkles size={22} />
-                    <span>JomaShop AI</span>
+                    <span>CortexCart</span>
                 </Link>
 
                 <div className={`navbar-links ${menuOpen ? 'open' : ''}`}>
