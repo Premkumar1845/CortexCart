@@ -1,0 +1,130 @@
+.product-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow var(--transition), border-color var(--transition);
+}
+
+.product-card:hover {
+    border-color: rgba(108, 92, 231, 0.3);
+    box-shadow: var(--shadow-glow);
+}
+
+.product-card-image {
+    position: relative;
+    aspect-ratio: 1;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.product-card-image img {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    transition: transform 0.5s ease;
+}
+
+.product-card:hover .product-card-image img {
+    transform: scale(1.08);
+}
+
+.product-card-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.product-card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.product-card-brand {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent-light);
+}
+
+.product-card-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.product-card-prices {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.product-card-final {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--success);
+}
+
+.product-card-retail {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.product-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.product-card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.product-card-score {
+    color: var(--warning) !important;
+    font-weight: 600;
+}
+
+.product-card-btn {
+    margin-top: auto;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--accent), #a29bfe);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: opacity var(--transition), transform var(--transition);
+}
+
+.product-card-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
