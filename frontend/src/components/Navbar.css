@@ -1,0 +1,135 @@
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 72px;
+    background: rgba(10, 10, 15, 0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.navbar-inner {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 32px;
+}
+
+.navbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.navbar-logo svg {
+    color: var(--accent-light);
+}
+
+.navbar-links {
+    display: flex;
+    gap: 28px;
+}
+
+.navbar-links a {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: color var(--transition);
+    position: relative;
+}
+
+.navbar-links a:hover {
+    color: var(--text-primary);
+}
+
+.navbar-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--accent);
+    transition: width var(--transition);
+    border-radius: 2px;
+}
+
+.navbar-links a:hover::after {
+    width: 100%;
+}
+
+.navbar-search {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: 8px 16px;
+    gap: 8px;
+    width: 280px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.navbar-search:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.navbar-search-icon {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.navbar-search input {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    width: 100%;
+}
+
+.navbar-search input::placeholder {
+    color: var(--text-muted);
+}
+
+.navbar-hamburger {
+    display: none;
+    background: none;
+    color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .navbar-links {
+        display: none;
+        position: absolute;
+        top: 72px;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background: rgba(10, 10, 15, 0.95);
+        backdrop-filter: blur(20px);
+        padding: 20px 24px;
+        gap: 16px;
+        border-bottom: 1px solid var(--border-glass);
+    }
+
+    .navbar-links.open {
+        display: flex;
+    }
+
+    .navbar-search {
+        width: 180px;
+    }
+
+    .navbar-hamburger {
+        display: block;
+    }
+}
