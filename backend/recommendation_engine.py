@@ -16,9 +16,11 @@ from scipy.sparse import hstack, csr_matrix
 _BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_DIR = os.path.dirname(_BACKEND_DIR)
 
-# Model cache – use project-relative path on Linux/Render,
-# fall back to TEMP on Windows to avoid MAX_PATH issues.
-if os.name == "nt":
+# Model cache – use /tmp on Vercel (read-only filesystem),
+# project-relative on Linux/Render, TEMP on Windows.
+if os.environ.get("VERCEL"):
+    MODEL_DIR = "/tmp/jomashop_models"
+elif os.name == "nt":
     MODEL_DIR = os.path.join(os.environ.get("TEMP", "C:\\Temp"), "jomashop_models")
 else:
     MODEL_DIR = os.path.join(_PROJECT_DIR, "models_cache")
