@@ -1,0 +1,19 @@
+# Dependencies
+frontend/node_modules/
+__pycache__/
+*.pyc
+
+# Build output
+frontend/dist/
+
+# Model cache (rebuilt at runtime)
+models_cache/
+backend/pipeline_models/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.env.local

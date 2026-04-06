@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: jomashop-recommender
+    runtime: python
+    buildCommand: "chmod +x build.sh && ./build.sh"
+    startCommand: "cd backend && gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: NODE_VERSION
+        value: "20.11.0"
