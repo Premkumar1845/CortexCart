@@ -434,6 +434,3 @@ This project is for educational and portfolio purposes.
 
 ---
 
-<p align="center">
-  Built with ❤️ by <a href="https://github.com/Premkumar1845">Premkumar</a>
-</p>
