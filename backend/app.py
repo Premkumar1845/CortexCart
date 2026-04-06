@@ -20,12 +20,24 @@ STATIC_DIR = os.path.join(_PROJECT_DIR, "frontend", "dist")
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 CORS(app)
 
-# ── Bootstrap engine ──────────────────────────────────────────────────
+# ── Bootstrap engine (lazy on Vercel, eager locally) ──────────────────
 engine = RecommendationEngine()
+_engine_ready = False
+_IS_VERCEL = bool(os.environ.get("VERCEL"))
 
-print("⏳  Building recommendation engine (this may take a minute) …")
-engine.build()
-print("✅  Engine ready.")
+
+def _ensure_engine():
+    global _engine_ready
+    if not _engine_ready:
+        print("⏳  Building recommendation engine …")
+        engine.build()
+        print("✅  Engine ready.")
+        _engine_ready = True
+
+
+# Build immediately when running locally (not on Vercel)
+if not _IS_VERCEL:
+    _ensure_engine()
 
 
 # ── Health ────────────────────────────────────────────────────────────
@@ -37,6 +49,7 @@ def health():
 # ── Product catalog (paginated, searchable) ───────────────────────────
 @app.route("/api/products", methods=["GET"])
 def get_products():
+    _ensure_engine()
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     search = request.args.get("search", None, type=str)
@@ -48,6 +61,7 @@ def get_products():
 # ── Single product detail ─────────────────────────────────────────────
 @app.route("/api/products/<int:product_id>", methods=["GET"])
 def get_product(product_id):
+    _ensure_engine()
     product = engine.get_product_by_index(product_id)
     if product is None:
         return jsonify({"error": "Product not found"}), 404
@@ -57,6 +71,7 @@ def get_product(product_id):
 # ── Real-time recommendation ──────────────────────────────────────────
 @app.route("/api/recommend/realtime", methods=["POST"])
 def recommend_realtime():
+    _ensure_engine()
     body = request.get_json(silent=True) or {}
     product_id = body.get("product_id")
     query = body.get("query")
@@ -79,6 +94,7 @@ def recommend_realtime():
 # ── Batch recommendation (CSV upload) ─────────────────────────────────
 @app.route("/api/recommend/batch", methods=["POST"])
 def recommend_batch():
+    _ensure_engine()
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
 

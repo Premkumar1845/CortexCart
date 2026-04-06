@@ -26,7 +26,11 @@ else:
     MODEL_DIR = os.path.join(_PROJECT_DIR, "models_cache")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-DATA_PATH = os.path.join(_PROJECT_DIR, "Dataset", "JomaShop Products Data.csv")
+# On Vercel use the smaller sampled dataset to fit within serverless limits
+if os.environ.get("VERCEL"):
+    DATA_PATH = os.path.join(_PROJECT_DIR, "Dataset", "vercel_products.csv")
+else:
+    DATA_PATH = os.path.join(_PROJECT_DIR, "Dataset", "JomaShop Products Data.csv")
 
 
 class RecommendationEngine:
