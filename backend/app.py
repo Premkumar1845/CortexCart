@@ -3,14 +3,20 @@ Flask API – Multi-Modal Product Recommendation System
 """
 
 import io
+import json
 import os
 import traceback
 
 import pandas as pd
+import requests as http_requests
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
 
 from recommendation_engine import RecommendationEngine
+
+# ── Load .env ─────────────────────────────────────────────────────────
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
 
 # ── Static build path (React production build) ───────────────────────
 _BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -126,6 +132,73 @@ def recommend_batch():
         )
 
     return jsonify({"recommendations": results, "total": len(results)})
+
+
+# ── AI-powered recommendation (OpenRouter LLM) ───────────────────────
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+
+@app.route("/api/ai/recommend", methods=["POST"])
+def ai_recommend():
+    _ensure_engine()
+    body = request.get_json(silent=True) or {}
+    user_message = body.get("message", "").strip()
+
+    if not user_message:
+        return jsonify({"error": "Please provide a message"}), 400
+
+    if not OPENROUTER_API_KEY:
+        return jsonify({"error": "AI service not configured"}), 503
+
+    # Fetch a sample of products for context
+    sample = engine.get_products(page=1, per_page=30, search=user_message.split()[0] if user_message else None)
+    product_context = ""
+    for p in sample.get("products", [])[:15]:
+        product_context += (
+            f"- ID:{p['id']} | {p['brandName']} {p['name']} | "
+            f"${p.get('finalPrice', 'N/A')} (retail ${p.get('retailPrice', 'N/A')}) | "
+            f"{p.get('department', '')}\n"
+        )
+
+    system_prompt = (
+        "You are CortexCart AI, an intelligent product recommendation assistant for a luxury e-commerce store "
+        "(watches, jewelry, handbags, sunglasses, etc.) with 94,000+ products.\n\n"
+        "Your job is to understand what the user is looking for and recommend products from our catalog.\n"
+        "When recommending products, always include the product ID, brand, name, and price.\n"
+        "Format your recommendations clearly with numbered lists.\n"
+        "Be conversational, helpful, and concise.\n\n"
+        f"Here are some relevant products from our catalog:\n{product_context}"
+    )
+
+    try:
+        resp = http_requests.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "mistralai/mistral-7b-instruct:free",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                "max_tokens": 1024,
+                "temperature": 0.7,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        ai_reply = data["choices"][0]["message"]["content"]
+        return jsonify({"reply": ai_reply})
+    except http_requests.exceptions.Timeout:
+        return jsonify({"error": "AI service timed out. Try again."}), 504
+    except http_requests.exceptions.RequestException as e:
+        return jsonify({"error": f"AI service error: {str(e)}"}), 502
+    except (KeyError, IndexError):
+        return jsonify({"error": "Unexpected AI response format"}), 502
 
 
 # ── Error handlers ────────────────────────────────────────────────────

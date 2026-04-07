@@ -43,3 +43,8 @@ export async function downloadBatchCSV(file, topN = 5) {
     });
     return response.data;
 }
+
+export async function getAIRecommendation(message) {
+    const { data } = await API.post('/ai/recommend', { message });
+    return data.reply;
+}

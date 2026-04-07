@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import AIChat from './components/AIChat';
 import HomePage from './pages/HomePage';
 import CatalogPage from './pages/CatalogPage';
 import BatchPage from './pages/BatchPage';
@@ -18,6 +19,7 @@ export default function App() {
                     <Route path="/recommendations/:id" element={<RecommendationsPage />} />
                 </Routes>
             </main>
+            <AIChat />
         </div>
     );
 }
