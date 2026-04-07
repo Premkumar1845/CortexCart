@@ -1,4 +1,6 @@
-.catalog { padding: 32px 24px 60px; }
+.catalog {
+  padding: 32px 24px 60px;
+}
 
 .catalog-header {
   display: flex;
@@ -8,10 +10,12 @@
   flex-wrap: wrap;
   gap: 16px;
 }
+
 .catalog-title {
   font-size: 1.8rem;
   font-weight: 800;
 }
+
 .catalog-sub {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -29,8 +33,16 @@
   width: 260px;
   transition: border-color var(--transition);
 }
-.catalog-search:focus-within { border-color: var(--accent); }
-.catalog-search svg { color: var(--text-muted); flex-shrink: 0; }
+
+.catalog-search:focus-within {
+  border-color: var(--accent);
+}
+
+.catalog-search svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
 .catalog-search input {
   background: transparent;
   border: none;
@@ -38,7 +50,10 @@
   font-size: 0.85rem;
   width: 100%;
 }
-.catalog-search input::placeholder { color: var(--text-muted); }
+
+.catalog-search input::placeholder {
+  color: var(--text-muted);
+}
 
 .catalog-grid {
   display: grid;
@@ -55,6 +70,7 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
 }
+
 .catalog-pagination button {
   display: flex;
   align-items: center;
@@ -68,5 +84,52 @@
   font-weight: 500;
   transition: border-color var(--transition), opacity var(--transition);
 }
-.catalog-pagination button:hover:not(:disabled) { border-color: var(--accent); }
-.catalog-pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.catalog-pagination button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.catalog-pagination button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .catalog {
+    padding: 24px 16px 48px;
+  }
+
+  .catalog-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .catalog-search {
+    width: 100%;
+  }
+
+  .catalog-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .catalog-title {
+    font-size: 1.4rem;
+  }
+
+  .catalog-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .catalog-pagination {
+    gap: 12px;
+  }
+
+  .catalog-pagination button {
+    padding: 8px 14px;
+    font-size: 0.78rem;
+  }
+}

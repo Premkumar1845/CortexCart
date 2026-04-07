@@ -126,3 +126,19 @@ textarea {
     font-family: var(--font);
     outline: none;
 }
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 16px;
+    }
+
+    .main-content {
+        padding-top: 72px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 12px;
+    }
+}

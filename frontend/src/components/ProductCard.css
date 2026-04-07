@@ -128,3 +128,22 @@
     opacity: 0.9;
     transform: translateY(-1px);
 }
+
+@media (max-width: 480px) {
+    .product-card-body {
+        padding: 12px;
+    }
+
+    .product-card-name {
+        font-size: 0.8rem;
+    }
+
+    .product-card-final {
+        font-size: 1rem;
+    }
+
+    .product-card-btn {
+        padding: 8px;
+        font-size: 0.78rem;
+    }
+}

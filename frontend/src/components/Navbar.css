@@ -107,6 +107,10 @@
 }
 
 @media (max-width: 768px) {
+    .navbar-inner {
+        gap: 16px;
+    }
+
     .navbar-links {
         display: none;
         position: absolute;
@@ -131,5 +135,20 @@
 
     .navbar-hamburger {
         display: block;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar-search {
+        width: 120px;
+        padding: 6px 10px;
+    }
+
+    .navbar-search input {
+        font-size: 0.78rem;
+    }
+
+    .navbar-logo span {
+        font-size: 1rem;
     }
 }
