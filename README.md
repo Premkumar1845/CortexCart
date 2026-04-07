@@ -14,23 +14,6 @@
 
 ---
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Dataset](#dataset)
-- [Recommendation Engine](#recommendation-engine)
-- [API Endpoints](#api-endpoints)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Deployment on Render](#deployment-on-render)
-- [Screenshots](#screenshots)
-- [License](#license)
-
----
-
 ## Overview
 
 **CortexCart** is a full-stack multi-modal product recommendation system that uses machine learning to find similar products from a catalog of **93,000+ luxury products** sourced from JomaShop. It combines **TF-IDF text analysis**, **price normalization**, and **brand encoding** into a hybrid content-based recommendation engine, served through a Flask REST API and consumed by a premium React frontend with glassmorphism UI design.
@@ -375,37 +358,6 @@ Navigate to **http://localhost:3000** in your browser.
 
 ---
 
-## Deployment on Render
-
-CortexCart includes a pre-configured `render.yaml` blueprint for one-click deployment on [Render](https://render.com).
-
-### Option A: Blueprint (Recommended)
-1. Push the repo to GitHub
-2. Go to [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint**
-3. Connect your GitHub repo — Render will auto-detect `render.yaml`
-4. Click **Apply** and wait for the build
-
-### Option B: Manual Setup
-1. Create a new **Web Service** on Render
-2. Connect your GitHub repo
-3. Configure:
-   - **Build Command:** `chmod +x build.sh && ./build.sh`
-   - **Start Command:** `cd backend && gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
-   - **Environment:** Python 3
-4. Add environment variables:
-   - `PYTHON_VERSION` = `3.11.9`
-   - `NODE_VERSION` = `20.11.0`
-
-The build script handles:
-- Installing Python dependencies
-- Installing Node.js dependencies
-- Building the React frontend (`vite build`)
-- Flask serves the built static files in production
-
-> **Note:** The free tier has 512 MB RAM. Due to the 93K-row TF-IDF model, the **Starter plan** ($7/mo, 1 GB RAM) is recommended.
-
----
-
 ## Sample Batch CSV
 
 A sample file (`sample_batch_queries.csv`) is included for testing batch recommendations:
@@ -426,9 +378,7 @@ gold bracelet,
 
 Upload this file on the **Batch Upload** page to test bulk recommendation generation.
 
----
 
-## License
 
 This project is for educational and portfolio purposes.
 
