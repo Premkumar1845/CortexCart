@@ -96,24 +96,81 @@
     font-weight: 600;
 }
 
-.recs-header {
+/* ─── Recommendation Sections ─── */
+.recs-section {
+    margin-bottom: 48px;
+}
+
+.recs-section-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 24px;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.recs-section-header h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.recs-section-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+}
+
+.recs-section-icon--gold {
+    background: rgba(254, 202, 87, 0.15);
+    color: #feca57;
+}
+
+.recs-section-icon--purple {
+    background: rgba(108, 92, 231, 0.15);
     color: var(--accent-light);
 }
 
-.recs-header h2 {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--text-primary);
+.recs-section-icon--green {
+    background: rgba(0, 206, 201, 0.15);
+    color: var(--success);
+}
+
+.recs-section-icon--pink {
+    background: rgba(253, 121, 168, 0.15);
+    color: #fd79a8;
+}
+
+.recs-section-icon--cyan {
+    background: rgba(0, 206, 201, 0.15);
+    color: #00cec9;
+}
+
+.recs-section-count {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 100px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
 }
 
 .recs-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 24px;
+}
+
+.recs-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
 }
 
 @media (max-width: 700px) {
@@ -146,6 +203,10 @@
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 16px;
     }
+
+    .recs-section-header h2 {
+        font-size: 1rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -171,7 +232,7 @@
         grid-template-columns: 1fr;
     }
 
-    .recs-header h2 {
-        font-size: 1.1rem;
+    .recs-section-header h2 {
+        font-size: 0.95rem;
     }
 }
