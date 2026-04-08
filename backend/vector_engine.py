@@ -25,13 +25,18 @@ class VectorEngine:
     # ── Lazy-load sentence-transformer for query encoding ─────
     def _get_model(self):
         if self._model is None:
-            from sentence_transformers import SentenceTransformer
-            self._model = SentenceTransformer("all-MiniLM-L6-v2")
+            try:
+                from sentence_transformers import SentenceTransformer
+                self._model = SentenceTransformer("all-MiniLM-L6-v2")
+            except ImportError:
+                return None
         return self._model
 
     def encode_query(self, text: str) -> list[float]:
         """Convert a text query into a 384-dim embedding vector."""
         model = self._get_model()
+        if model is None:
+            return []
         vec = model.encode([text], normalize_embeddings=True)
         return vec[0].tolist()
 
@@ -117,6 +122,8 @@ class VectorEngine:
     def search_similar(self, query: str, top_n: int = 10, category: str | None = None):
         """Semantic search: query text → embedding → nearest products."""
         query_vec = self.encode_query(query)
+        if not query_vec:
+            return []
 
         if is_supabase_configured():
             return self._supabase_search(query_vec, top_n, category)
