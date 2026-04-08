@@ -3,6 +3,7 @@ Multi-Modal Product Recommendation Engine
 Combines TF-IDF text features, price normalization, and brand encoding
 to produce hybrid content-based recommendations using cosine similarity.
 """
+from __future__ import annotations
 
 import os
 import pandas as pd

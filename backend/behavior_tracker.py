@@ -1,6 +1,7 @@
 """
 User Behavior Tracking – anonymous session-based activity logging
 """
+from __future__ import annotations
 
 import uuid
 from supabase_client import get_supabase, is_supabase_configured

@@ -2,6 +2,7 @@
 Hybrid Ranking Engine
 Combines similarity, rating, and price signals for intelligent product ranking.
 """
+from __future__ import annotations
 
 
 def hybrid_rank(products: list[dict], price_target: float | None = None, boost_brand: str | None = None) -> list[dict]:

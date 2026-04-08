@@ -2,6 +2,7 @@
 Vector Recommendation Engine – Supabase pgvector powered
 Falls back to local embeddings cache when Supabase is not configured.
 """
+from __future__ import annotations
 
 import os
 import numpy as np
