@@ -4,12 +4,13 @@
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
   "functions": {
-    "Cortex/index.py": {
-      "maxDuration": 30
+    "api/index.py": {
+      "maxDuration": 30,
+      "excludeFiles": "{models/**,Dataset/JomaShop Products Data.csv,Dataset/testdata.csv,scripts/**,supabase/**,models_cache/**,*.ipynb,.git/**}"
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/Cortex/index.py" },
+    { "source": "/api/:path*", "destination": "/api/index.py" },
     { "source": "/:path*", "destination": "/index.html" }
   ]
 }
