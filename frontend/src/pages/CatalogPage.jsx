@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
-import { fetchProducts } from '../services/api';
+import { fetchProducts, trackActivity } from '../services/api';
 import './CatalogPage.css';
 
 export default function CatalogPage() {
@@ -21,6 +21,11 @@ export default function CatalogPage() {
             const data = await fetchProducts(page, 20, query);
             setProducts(data.products);
             setMeta({ page: data.page, total_pages: data.total_pages, total: data.total });
+
+            // Track product views for personalization
+            if (data.products && data.products.length > 0) {
+                data.products.slice(0, 5).forEach((p) => trackActivity(p.id, 'view'));
+            }
         } catch (err) {
             console.error(err);
         } finally {
@@ -29,6 +34,10 @@ export default function CatalogPage() {
     }, [search]);
 
     useEffect(() => {
+        // Track search queries for personalization
+        if (search) {
+            trackActivity(null, 'search', { query: search });
+        }
         load(1, search);
     }, [search]);
 
