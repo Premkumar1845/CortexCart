@@ -49,6 +49,56 @@
     gap: 4px;
 }
 
+/* ── Action overlay (like + why) ── */
+.product-card-actions-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity var(--transition);
+}
+
+.product-card:hover .product-card-actions-overlay {
+    opacity: 1;
+}
+
+.product-card-like,
+.product-card-why {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(10, 10, 15, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.product-card-like:hover {
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.15);
+}
+
+.product-card-like.liked {
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.2);
+}
+
+.product-card-why:hover {
+    color: var(--accent-light);
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.15);
+}
+
 .product-card-body {
     padding: 16px;
     display: flex;
@@ -113,6 +163,39 @@
     font-weight: 600;
 }
 
+.product-card-rating {
+    color: #feca57 !important;
+    font-weight: 600;
+}
+
+.product-card-hybrid {
+    color: var(--accent-light) !important;
+    font-weight: 600;
+    font-size: 0.68rem;
+}
+
+/* ── Explanation bubble ── */
+.product-card-explanation {
+    background: rgba(108, 92, 231, 0.08);
+    border: 1px solid rgba(108, 92, 231, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    overflow: hidden;
+}
+
+.product-card-explanation p {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.explanation-loading {
+    font-size: 0.78rem;
+    color: var(--accent-light);
+    font-style: italic;
+}
+
 .product-card-btn {
     margin-top: auto;
     padding: 10px;
@@ -145,5 +228,9 @@
     .product-card-btn {
         padding: 8px;
         font-size: 0.78rem;
+    }
+
+    .product-card-actions-overlay {
+        opacity: 1;
     }
 }
