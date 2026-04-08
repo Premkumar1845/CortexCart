@@ -4,12 +4,12 @@
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
   "functions": {
-    "api/index.py": {
+    "Cortex/index.py": {
       "maxDuration": 30
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index.py" },
+    { "source": "/api/:path*", "destination": "/Cortex/index.py" },
     { "source": "/:path*", "destination": "/index.html" }
   ]
 }
