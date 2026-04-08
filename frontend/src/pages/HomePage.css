@@ -137,9 +137,48 @@
     border-color: rgba(255, 255, 255, 0.15);
 }
 
+/* ─── Personalized ─── */
+.personalized {
+    padding: 60px 0 20px;
+}
+
+.personalized-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.personalized-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.personalized-badge {
+    background: linear-gradient(135deg, var(--accent), #a29bfe);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 100px;
+}
+
+.personalized-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+}
+
 /* ─── Features ─── */
 .features {
     padding: 60px 0;
+}
+
+.features-title {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 40px;
 }
 
 .features-grid {

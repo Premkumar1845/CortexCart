@@ -1,12 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Search, Upload, ArrowRight, Brain, Layers, Zap } from 'lucide-react';
+import { Sparkles, Search, Upload, ArrowRight, Brain, Layers, Zap, Shield, Star, TrendingUp } from 'lucide-react';
+import ProductCard from '../components/ProductCard';
+import Loader from '../components/Loader';
+import { getPersonalizedRecommendations } from '../services/api';
 import './HomePage.css';
 
 export default function HomePage() {
     const [query, setQuery] = useState('');
+    const [personalized, setPersonalized] = useState([]);
+    const [personalizedLoading, setPersonalizedLoading] = useState(true);
+    const [isPersonalized, setIsPersonalized] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        async function loadPersonalized() {
+            try {
+                const data = await getPersonalizedRecommendations(8);
+                setPersonalized(data.recommendations || []);
+                setIsPersonalized(data.personalized || false);
+            } catch {
+                setPersonalized([]);
+            } finally {
+                setPersonalizedLoading(false);
+            }
+        }
+        loadPersonalized();
+    }, []);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -18,18 +39,33 @@ export default function HomePage() {
     const features = [
         {
             icon: <Brain size={28} />,
-            title: 'Multi-Modal AI',
-            desc: 'Fuses text descriptions, pricing signals, and brand context for deep product understanding.',
+            title: 'Semantic Intelligence',
+            desc: 'Vector embeddings understand product meaning, not just keywords. Find truly similar items across 94K+ products.',
         },
         {
             icon: <Layers size={28} />,
-            title: 'Hybrid Similarity',
-            desc: 'TF-IDF + cosine similarity across 94K products with weighted feature fusion.',
+            title: 'Hybrid Ranking',
+            desc: 'Multi-signal scoring fuses similarity, ratings, price proximity, and discounts for smarter recommendations.',
         },
         {
             icon: <Zap size={28} />,
-            title: 'Instant Results',
-            desc: 'Real-time single queries or batch CSV uploads – recommendations in milliseconds.',
+            title: 'Real-time Results',
+            desc: 'Single queries, batch CSV uploads, or AI chat – get intelligent recommendations in milliseconds.',
+        },
+        {
+            icon: <Shield size={28} />,
+            title: '"Why This?" Explainability',
+            desc: 'Every recommendation comes with an AI-generated explanation of why it matches your needs.',
+        },
+        {
+            icon: <Star size={28} />,
+            title: 'Personalized For You',
+            desc: 'Behavior tracking learns your preferences to deliver increasingly relevant product suggestions.',
+        },
+        {
+            icon: <TrendingUp size={28} />,
+            title: 'Smart Categories',
+            desc: 'Best for you, budget alternatives, premium upgrades, and best value – organized decision layers.',
         },
     ];
 
@@ -49,7 +85,7 @@ export default function HomePage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
                     >
-                        <Sparkles size={14} /> Powered by Multi-Modal ML
+                        <Sparkles size={14} /> AI Decision Engine for Shopping
                     </motion.span>
 
                     <motion.h1
@@ -68,8 +104,8 @@ export default function HomePage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
                     >
-                        Discover similar products across 94,000+ items using advanced NLP,
-                        pricing analysis, and brand intelligence – all in real-time.
+                        Discover products through semantic understanding, hybrid ranking,
+                        and AI-powered explanations – not just filters and sorting.
                     </motion.p>
 
                     <motion.form
@@ -107,8 +143,40 @@ export default function HomePage() {
                 </div>
             </section>
 
+            {/* ─── Personalized / Featured Section ─── */}
+            <section className="personalized container">
+                <motion.div
+                    className="personalized-header"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                >
+                    <h2>{isPersonalized ? '🔥 Recommended For You' : '🔥 Featured Products'}</h2>
+                    {isPersonalized && (
+                        <span className="personalized-badge">Based on your browsing</span>
+                    )}
+                </motion.div>
+                {personalizedLoading ? (
+                    <Loader text="Loading recommendations…" />
+                ) : personalized.length > 0 ? (
+                    <div className="personalized-grid">
+                        {personalized.map((p, i) => (
+                            <ProductCard key={p.id} product={p} index={i} />
+                        ))}
+                    </div>
+                ) : null}
+            </section>
+
             {/* ─── Features ─── */}
             <section className="features container">
+                <motion.h2
+                    className="features-title"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                >
+                    Not Just Search. <span className="hero-gradient">Intelligence.</span>
+                </motion.h2>
                 <div className="features-grid">
                     {features.map((f, i) => (
                         <motion.div
@@ -117,7 +185,7 @@ export default function HomePage() {
                             initial={{ opacity: 0, y: 40 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ delay: i * 0.15 }}
+                            transition={{ delay: i * 0.1 }}
                             whileHover={{ y: -4 }}
                         >
                             <div className="feature-icon">{f.icon}</div>
@@ -134,7 +202,7 @@ export default function HomePage() {
                     {[
                         ['94K+', 'Products'],
                         ['1,400+', 'Brands'],
-                        ['3', 'Feature Modalities'],
+                        ['5', 'Recommendation Layers'],
                         ['<100ms', 'Avg Response'],
                     ].map(([val, label], i) => (
                         <motion.div
