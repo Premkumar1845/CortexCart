@@ -29,8 +29,11 @@ export default function AIChat() {
         try {
             const reply = await getAIRecommendation(msg);
             setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
-        } catch {
-            setMessages((prev) => [...prev, { role: 'error', content: 'Something went wrong. Please try again.' }]);
+        } catch (err) {
+            setMessages((prev) => [
+                ...prev,
+                { role: 'error', content: err?.message || 'Something went wrong. Please try again.' },
+            ]);
         } finally {
             setLoading(false);
         }

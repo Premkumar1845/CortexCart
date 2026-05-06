@@ -308,9 +308,155 @@ def recommend_batch():
     return jsonify({"recommendations": results, "total": len(results)})
 
 
-# ── AI-powered recommendation (OpenRouter LLM) ───────────────────────
+# ── AI-powered recommendation (OpenRouter LLM with engine fallback) ──
+import re
+
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+# Try free models in order – first one that responds wins.
+OPENROUTER_MODELS = [
+    m.strip() for m in os.environ.get(
+        "OPENROUTER_MODELS",
+        "mistralai/mistral-7b-instruct:free,"
+        "google/gemma-2-9b-it:free,"
+        "meta-llama/llama-3.2-3b-instruct:free,"
+        "qwen/qwen-2-7b-instruct:free",
+    ).split(",") if m.strip()
+]
+
+
+def _parse_budget(message: str):
+    """Extract a max-price budget (USD) from natural language."""
+    if not message:
+        return None
+    m = re.search(
+        r"(?:under|below|less than|<=?|upto|up to|max(?:imum)?|within|cheaper than)"
+        r"\s*\$?\s*([\d,]+(?:\.\d+)?)\s*(k|K)?",
+        message,
+    )
+    if not m:
+        m = re.search(r"\$\s*([\d,]+(?:\.\d+)?)\s*(k|K)?", message)
+    if not m:
+        return None
+    try:
+        val = float(m.group(1).replace(",", ""))
+        if m.group(2) and m.group(2).lower() == "k":
+            val *= 1000
+        return val
+    except (ValueError, IndexError):
+        return None
+
+
+def _build_fallback_reply(user_message: str):
+    """Generate a recommendation reply using the local engine (no LLM)."""
+    budget = _parse_budget(user_message)
+    # Strip price phrases so the text query focuses on the product itself
+    cleaned = re.sub(
+        r"(under|below|less than|<=?|upto|up to|max(?:imum)?|within|cheaper than)?"
+        r"\s*\$?\s*[\d,]+(?:\.\d+)?\s*(k|K)?\s*(dollars|usd)?",
+        " ",
+        user_message,
+        flags=re.IGNORECASE,
+    ).strip() or user_message
+
+    try:
+        recs = engine.recommend_by_query(cleaned, top_n=30)
+    except Exception:
+        recs = []
+
+    if budget is not None:
+        recs = [
+            r for r in recs
+            if isinstance(r.get("finalPrice"), (int, float)) and 0 < r["finalPrice"] <= budget
+        ]
+    recs = recs[:5]
+
+    if not recs:
+        return (
+            "I couldn't find products that match that description in our catalog. "
+            "Try a different keyword (e.g. \"Rolex watches\", \"Gucci handbags\", "
+            "\"sunglasses under $200\")."
+        )
+
+    lines = [f"Here are {len(recs)} picks from our catalog"]
+    if budget is not None:
+        lines[0] += f" under ${int(budget):,}"
+    lines[0] += ":\n"
+    for i, r in enumerate(recs, 1):
+        price = r.get("finalPrice") or r.get("retailPrice") or "N/A"
+        if isinstance(price, (int, float)):
+            price = f"${price:,.2f}"
+        lines.append(
+            f"{i}. **{r.get('brandName', '')} — {r.get('name', '')}** ({price})\n"
+            f"   _Why_: matches your query \"{cleaned}\" with similarity "
+            f"{r.get('similarity_score', 0):.2f}."
+        )
+    return "\n".join(lines)
+
+
+def _try_openrouter(user_message: str):
+    """Call OpenRouter with model fallback. Returns reply string or None."""
+    if not OPENROUTER_API_KEY:
+        return None
+
+    sample = engine.get_products(
+        page=1, per_page=30,
+        search=user_message.split()[0] if user_message else None,
+    )
+    product_context = ""
+    for p in sample.get("products", [])[:15]:
+        product_context += (
+            f"- ID:{p['id']} | {p.get('brandName','')} {p.get('name','')} | "
+            f"${p.get('finalPrice', 'N/A')} (retail ${p.get('retailPrice', 'N/A')}) | "
+            f"{p.get('department', '')}\n"
+        )
+
+    system_prompt = (
+        "You are CortexCart AI, a recommendation assistant for a luxury e-commerce "
+        "store (watches, jewelry, handbags, sunglasses) with 94,000+ products.\n"
+        "Recommend products from the catalog provided. Include brand, name, price, "
+        "and a one-sentence reason. Use a numbered list. Be concise and friendly.\n\n"
+        f"Catalog sample:\n{product_context}"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": os.environ.get("APP_URL", "https://cortexcart.local"),
+        "X-Title": "CortexCart",
+    }
+    payload_messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message},
+    ]
+
+    last_err = None
+    for model in OPENROUTER_MODELS:
+        try:
+            resp = http_requests.post(
+                OPENROUTER_URL,
+                headers=headers,
+                json={
+                    "model": model,
+                    "messages": payload_messages,
+                    "max_tokens": 1024,
+                    "temperature": 0.7,
+                },
+                timeout=25,
+            )
+            if resp.status_code >= 400:
+                last_err = f"{model} → HTTP {resp.status_code}: {resp.text[:200]}"
+                print(f"⚠️  OpenRouter {last_err}")
+                continue
+            data = resp.json()
+            return data["choices"][0]["message"]["content"]
+        except (http_requests.exceptions.RequestException, KeyError, IndexError, ValueError) as e:
+            last_err = f"{model} → {e}"
+            print(f"⚠️  OpenRouter {last_err}")
+            continue
+    if last_err:
+        print(f"❌  All OpenRouter models failed. Last error: {last_err}")
+    return None
 
 
 @app.route("/api/ai/recommend", methods=["POST"])
@@ -322,58 +468,17 @@ def ai_recommend():
     if not user_message:
         return jsonify({"error": "Please provide a message"}), 400
 
-    if not OPENROUTER_API_KEY:
-        return jsonify({"error": "AI service not configured"}), 503
-
-    # Fetch a sample of products for context
-    sample = engine.get_products(page=1, per_page=30, search=user_message.split()[0] if user_message else None)
-    product_context = ""
-    for p in sample.get("products", [])[:15]:
-        product_context += (
-            f"- ID:{p['id']} | {p['brandName']} {p['name']} | "
-            f"${p.get('finalPrice', 'N/A')} (retail ${p.get('retailPrice', 'N/A')}) | "
-            f"{p.get('department', '')}\n"
-        )
-
-    system_prompt = (
-        "You are CortexCart AI, an intelligent product recommendation assistant for a luxury e-commerce store "
-        "(watches, jewelry, handbags, sunglasses, etc.) with 94,000+ products.\n\n"
-        "Your job is to understand what the user is looking for and recommend products from our catalog.\n"
-        "When recommending products, always include the product ID, brand, name, and price.\n"
-        "For each recommendation, briefly explain WHY it's a good match (1 sentence).\n"
-        "Format your recommendations clearly with numbered lists.\n"
-        "Be conversational, helpful, and concise.\n\n"
-        f"Here are some relevant products from our catalog:\n{product_context}"
-    )
+    # Try LLM first; fall back to local engine so the chat is always useful.
+    llm_reply = _try_openrouter(user_message)
+    if llm_reply:
+        return jsonify({"reply": llm_reply, "source": "llm"})
 
     try:
-        resp = http_requests.post(
-            OPENROUTER_URL,
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "mistralai/mistral-7b-instruct:free",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message},
-                ],
-                "max_tokens": 1024,
-                "temperature": 0.7,
-            },
-            timeout=30,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        ai_reply = data["choices"][0]["message"]["content"]
-        return jsonify({"reply": ai_reply})
-    except http_requests.exceptions.Timeout:
-        return jsonify({"error": "AI service timed out. Try again."}), 504
-    except http_requests.exceptions.RequestException as e:
-        return jsonify({"error": f"AI service error: {str(e)}"}), 502
-    except (KeyError, IndexError):
-        return jsonify({"error": "Unexpected AI response format"}), 502
+        fallback = _build_fallback_reply(user_message)
+        return jsonify({"reply": fallback, "source": "engine"})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Recommendation failed: {e}"}), 500
 
 
 # ── Error handlers ────────────────────────────────────────────────────
@@ -401,10 +506,6 @@ def serve_react(path):
     if os.path.isfile(index):
         return send_from_directory(STATIC_DIR, "index.html")
     return jsonify({"status": "API is running. Frontend not built yet."}), 200
-
-
-if __name__ == "__main__":
-    app.run(debug=True, port=5000)
 
 
 if __name__ == "__main__":
