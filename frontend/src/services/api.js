@@ -2,6 +2,19 @@ import axios from 'axios';
 
 const API = axios.create({ baseURL: '/api' });
 
+// ── Auth token injection ─────────────────────────────────────────────
+export function setAuthToken(token) {
+    if (token) {
+        API.defaults.headers.common.Authorization = `Bearer ${token}`;
+    } else {
+        delete API.defaults.headers.common.Authorization;
+    }
+}
+
+// On boot, restore token from localStorage so requests are authenticated
+const _bootToken = typeof window !== 'undefined' ? localStorage.getItem('cortexcart_token') : null;
+if (_bootToken) setAuthToken(_bootToken);
+
 // ── Session Management ───────────────────────────────────────────────
 const SESSION_KEY = 'cortexcart_session';
 
@@ -111,4 +124,121 @@ export async function getAIRecommendation(message) {
         const serverMsg = err?.response?.data?.error;
         throw new Error(serverMsg || err?.message || 'AI request failed');
     }
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────
+export async function apiSignup({ username, email, password, full_name }) {
+    const { data } = await API.post('/auth/signup', { username, email, password, full_name });
+    return data;
+}
+
+export async function apiLogin(username, password) {
+    const { data } = await API.post('/auth/login', { username, password });
+    return data;
+}
+
+export async function apiLogout() {
+    const { data } = await API.post('/auth/logout');
+    return data;
+}
+
+export async function apiMe() {
+    const { data } = await API.get('/auth/me');
+    return data;
+}
+
+// ── Recommendation click tracking ────────────────────────────────────
+export async function trackRecommendationClick({ product_id, position, rec_log_id }) {
+    try {
+        await API.post('/recommend/click', {
+            product_id: String(product_id),
+            position,
+            rec_log_id,
+            session_id: getSessionId(),
+        });
+    } catch { /* silent */ }
+}
+
+// ── Admin: analytics ─────────────────────────────────────────────────
+export async function adminAnalyticsOverview() {
+    const { data } = await API.get('/admin/analytics/overview');
+    return data;
+}
+
+export async function adminAnalyticsSignups(days = 30) {
+    const { data } = await API.get('/admin/analytics/signups', { params: { days } });
+    return data.data || [];
+}
+
+export async function adminAnalyticsActivity(days = 30) {
+    const { data } = await API.get('/admin/analytics/activity', { params: { days } });
+    return data.data || [];
+}
+
+export async function adminAnalyticsTopProducts(limit = 10) {
+    const { data } = await API.get('/admin/analytics/top-products', { params: { limit } });
+    return data.data || [];
+}
+
+export async function adminAnalyticsSearches(limit = 50) {
+    const { data } = await API.get('/admin/analytics/searches', { params: { limit } });
+    return data;
+}
+
+export async function adminAnalyticsRecommendations(limit = 100) {
+    const { data } = await API.get('/admin/analytics/recommendations', { params: { limit } });
+    return data;
+}
+
+// ── Admin: users + products ──────────────────────────────────────────
+export async function adminListUsers() {
+    const { data } = await API.get('/admin/users');
+    return data.users || [];
+}
+
+export async function adminUpdateUser(userId, patch) {
+    const { data } = await API.patch(`/admin/users/${userId}`, patch);
+    return data.user;
+}
+
+export async function adminDeleteProduct(productId) {
+    const { data } = await API.delete(`/admin/products/${productId}`);
+    return data;
+}
+
+export async function adminUpdateProduct(productId, patch) {
+    const { data } = await API.patch(`/admin/products/${productId}`, patch);
+    return data;
+}
+
+export async function adminReseed() {
+    const { data } = await API.post('/admin/reseed');
+    return data;
+}
+
+export async function adminReseedStatus() {
+    const { data } = await API.get('/admin/reseed/status');
+    return data;
+}
+
+// ── ML Pipeline (PDF-aligned stacking ensemble) ──────────────────────
+export async function getMLArchitecture() {
+    const { data } = await API.get('/ml/architecture');
+    return data;
+}
+
+export async function getMLMetrics() {
+    const { data } = await API.get('/ml/metrics');
+    return data;
+}
+
+export async function classifyProduct({ text, brand, price, discount_pct, top_k = 5 }) {
+    const { data } = await API.post('/ml/classify', {
+        text,
+        brand,
+        price,
+        discount_pct,
+        top_k,
+    });
+    return data;
 }
