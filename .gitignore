@@ -18,3 +18,6 @@ Thumbs.db
 .env
 *.env.local
 .vercel
+
+# Local auth store (dev fallback when Supabase not configured)
+backend/.local_users.json
