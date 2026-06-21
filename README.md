@@ -25,7 +25,89 @@ The system supports three recommendation modes:
 
 ---
 
+## Multi-Modal Stacking Ensemble (Final Report Architecture)
+
+The `/insights` page exposes the full PDF-aligned ML pipeline described in the
+project report (Chapter 3 — *System Design*). It fuses three modalities
+into a sparse feature matrix and feeds it through a stacking ensemble:
+
+```
+text  ──► HashingVectorizer (2^18 features, ngram (1,2), stop_words="english",
+                             alternate_sign=False, norm="l2")
+brand ──► LabelEncoder ──► one-hot (top-200 brands + "Other")
+price ──► StandardScaler(with_mean=False) on [finalPrice, discount_pct]
+            │
+            ▼
+sparse hstack ──► Stacking Ensemble
+                    ├── GradientBoostingClassifier  (base #1, dense projection)
+                    ├── LightGBM    (base #2, fallback: RandomForest)
+                    ├── NGBoost     (base #3, fallback: ExtraTrees)
+                    └── meta: CalibratedClassifierCV(LinearSVC, sigmoid, cv=3)
+```
+
+Implementation: [backend/ml_pipeline.py](backend/ml_pipeline.py)
+Training script: [scripts/train_classifier.py](scripts/train_classifier.py)
+
+### REST endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/ml/architecture` | Machine-readable pipeline spec (renders the diagram) |
+| `GET /api/ml/metrics`      | Accuracy / precision / recall / F1 per base model + ensemble |
+| `POST /api/ml/classify`    | Live classification — returns per-model + ensemble probabilities |
+
+### Frontend
+
+A dedicated **ML Insights** page (`/insights`) renders the architecture
+diagram, per-model evaluation charts, and an interactive classifier
+playground that calls `POST /api/ml/classify` and visualizes top-K
+probabilities for each base model alongside the stacking verdict.
+
+### Training
+
+```bash
+# Default (sampled, fast):
+python scripts/train_classifier.py
+
+# Force retrain (after schema changes):
+python scripts/train_classifier.py --force
+
+# Train on the full 93K-row CSV:
+python scripts/train_classifier.py --full
+```
+
+Trained artefacts are cached under `models_cache/ml/` and re-loaded by the
+backend on subsequent boots. LightGBM and NGBoost are optional — uncomment
+them in `backend/requirements.txt` to enable native acceleration; otherwise
+scikit-learn equivalents are used automatically.
+
+---
+
 ## Features
+
+### Auth, Admin & Analytics (new)
+- **Username / Password auth** with bcrypt-hashed passwords and JWT sessions (`PyJWT`)
+- **Role-based access control** — `user` and `admin` roles, with `RequireAuth` / `RequireAdmin` route guards on the React side and `@require_auth` / `@require_admin` decorators on the Flask side
+- **Supabase-backed** when `SUPABASE_URL` / `SUPABASE_KEY` are set, with a local JSON file fallback (`backend/.local_users.json`) for instant dev use
+- **Admin dashboard** at `/admin` — overview KPIs, signup/activity time series, top products, recommendation source breakdown, search logs, recommendation logs, user management (promote/demote, enable/disable), and a one-click embedding re-seed runner
+- **Analytics tracking** — every search, recommendation request (realtime, smart, personalized, ai_chat), and recommendation click is logged for the dashboard
+- **Default admin bootstrap** — set `DEFAULT_ADMIN_USERNAME` and `DEFAULT_ADMIN_PASSWORD` in `.env` to auto-create an admin on first boot
+
+#### Quick start (auth)
+1. Add to your `.env`:
+    ```
+    JWT_SECRET=please-change-me-to-a-long-random-string
+    JWT_TTL_HOURS=24
+    DEFAULT_ADMIN_USERNAME=admin
+    DEFAULT_ADMIN_PASSWORD=ChangeThisStrongPassword!
+    ```
+2. (Optional) Apply the new tables to Supabase: re-run `supabase/schema.sql` (it now includes `app_users`, `auth_events`, `recommendation_logs`, `recommendation_clicks`, `search_logs`, and analytics RPC functions).
+3. Install new deps:
+    ```
+    pip install -r backend/requirements.txt
+    cd frontend && npm install
+    ```
+4. Start the backend and frontend as usual. Visit `/signup` to create your first user, or sign in as the bootstrapped admin and open `/admin`.
 
 ### Backend
 - **Hybrid ML Pipeline** — Combines TF-IDF text features (20,000 dimensions, bigrams, sublinear TF), MinMaxScaler price normalization, and LabelEncoder brand one-hot encoding
