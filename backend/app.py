@@ -20,6 +20,11 @@ from recommendation_engine import RecommendationEngine
 from hybrid_ranking import hybrid_rank, categorize_recommendations
 from ai_explainer import explain_recommendation, explain_batch, _fallback_explanation
 from behavior_tracker import track_activity, get_user_history, get_viewed_product_ids, generate_session_id
+from auth import auth_bp, bootstrap_default_admin, get_current_user
+from admin import admin_bp
+from analytics import analytics_bp
+from supabase_client import get_supabase, is_supabase_configured
+from ml_pipeline import get_classifier
 
 # ── Load .env ─────────────────────────────────────────────────────────
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
@@ -30,10 +35,22 @@ _PROJECT_DIR = os.path.dirname(_BACKEND_DIR)
 STATIC_DIR = os.path.join(_PROJECT_DIR, "frontend", "dist")
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
-CORS(app)
+CORS(app, supports_credentials=True, expose_headers=["Authorization"])
+
+# Register auth/admin/analytics blueprints
+app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
+app.register_blueprint(analytics_bp)
+
+# Bootstrap a default admin if env vars are set (no-op otherwise)
+try:
+    bootstrap_default_admin()
+except Exception as _e:
+    print(f"⚠️  bootstrap_default_admin: {_e}")
 
 # ── Bootstrap engine (lazy on Vercel, eager locally) ──────────────────
 engine = RecommendationEngine()
+app.config["RECOMMENDATION_ENGINE"] = engine
 _engine_ready = False
 _IS_VERCEL = bool(os.environ.get("VERCEL"))
 
@@ -72,6 +89,59 @@ if not _IS_VERCEL:
     _ensure_engine()
 
 
+# ── Analytics logging helpers ─────────────────────────────────────────
+def _current_user_id():
+    try:
+        u = get_current_user()
+        return u["id"] if u else None
+    except Exception:
+        return None
+
+
+def _log_recommendation(source: str, query: str | None, source_product_id, recs):
+    """Best-effort log of a recommendation event for admin analytics."""
+    if not is_supabase_configured():
+        return None
+    try:
+        body = request.get_json(silent=True) or {}
+        session_id = body.get("session_id")
+        rec_ids = []
+        for r in (recs or [])[:50]:
+            rid = r.get("id") if isinstance(r, dict) else None
+            if rid is not None:
+                rec_ids.append(str(rid))
+        client = get_supabase()
+        res = client.table("recommendation_logs").insert({
+            "session_id": session_id,
+            "user_id": _current_user_id(),
+            "source": source,
+            "query": (query or "")[:500] or None,
+            "source_product_id": str(source_product_id) if source_product_id is not None else None,
+            "recommended_ids": rec_ids,
+            "result_count": len(rec_ids),
+        }).execute()
+        return res.data[0]["id"] if res.data else None
+    except Exception as e:
+        print(f"⚠️  _log_recommendation: {e}")
+        return None
+
+
+def _log_search(query: str, result_count: int):
+    if not is_supabase_configured() or not query:
+        return
+    try:
+        body = request.get_json(silent=True) or {}
+        client = get_supabase()
+        client.table("search_logs").insert({
+            "session_id": body.get("session_id") or request.args.get("session_id"),
+            "user_id": _current_user_id(),
+            "query": query[:500],
+            "result_count": result_count,
+        }).execute()
+    except Exception as e:
+        print(f"⚠️  _log_search: {e}")
+
+
 # ── Health ────────────────────────────────────────────────────────────
 @app.route("/api/health", methods=["GET"])
 def health():
@@ -80,7 +150,76 @@ def health():
         "status": "ok",
         "engine": "ready" if _engine_ready else "not_ready",
         "vector_search": "available" if vec else "fallback_tfidf",
+        "ml_pipeline": "ready" if _ml_ready else "lazy",
     })
+
+
+# ── ML Pipeline (PDF-aligned stacking ensemble) ──────────────────────
+_ml_ready = False
+
+
+def _ensure_classifier():
+    """Lazy build the classifier on first request (heavy)."""
+    global _ml_ready
+    clf = get_classifier()
+    if not _ml_ready:
+        clf.build()
+        _ml_ready = True
+    return clf
+
+
+@app.route("/api/ml/architecture", methods=["GET"])
+def ml_architecture():
+    """Machine-readable description of the multi-modal stacking pipeline."""
+    clf = get_classifier()
+    arch = clf.architecture()
+    arch["status"] = "ready" if _ml_ready else "lazy"
+    return jsonify(arch)
+
+
+@app.route("/api/ml/metrics", methods=["GET"])
+def ml_metrics():
+    """Per-model evaluation metrics (accuracy, precision, recall, F1)."""
+    try:
+        clf = _ensure_classifier()
+    except Exception as exc:
+        return jsonify({"error": f"classifier_unavailable: {exc}"}), 503
+    return jsonify(clf.metrics())
+
+
+@app.route("/api/ml/classify", methods=["POST"])
+def ml_classify():
+    """Classify a product into its type using the stacking ensemble.
+
+    Request JSON:
+        text         (str, required)   – Product name + description
+        brand        (str, optional)   – Brand name
+        price        (float, optional) – Final price
+        discount_pct (float, optional) – Discount percentage
+        top_k        (int, optional)   – Top-K predictions to return per model
+    """
+    try:
+        clf = _ensure_classifier()
+    except Exception as exc:
+        return jsonify({"error": f"classifier_unavailable: {exc}"}), 503
+
+    body = request.get_json(silent=True) or {}
+    text = (body.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "text_required"}), 400
+
+    try:
+        result = clf.predict(
+            text=text,
+            brand=body.get("brand"),
+            price=float(body.get("price") or 0),
+            discount_pct=float(body.get("discount_pct") or 0),
+            top_k=int(body.get("top_k") or 5),
+        )
+        return jsonify(result)
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"error": str(exc)}), 500
 
 
 # ── Product catalog (paginated, searchable) ───────────────────────────
@@ -92,6 +231,8 @@ def get_products():
     search = request.args.get("search", None, type=str)
     per_page = min(per_page, 100)  # cap
     data = engine.get_products(page=page, per_page=per_page, search=search)
+    if search:
+        _log_search(search, data.get("total", len(data.get("products", []))))
     return jsonify(data)
 
 
@@ -131,6 +272,7 @@ def recommend_realtime():
         source_product = engine.get_product_by_index(int(product_id))
     recs = hybrid_rank(recs, boost_brand=brand)
 
+    _log_recommendation("realtime", query, product_id, recs)
     return jsonify({"recommendations": recs})
 
 
@@ -176,6 +318,7 @@ def recommend_smart():
     # Categorize into sections
     sections = categorize_recommendations(recs, source_product)
 
+    _log_recommendation("smart", query, product_id, recs)
     return jsonify({
         "source_product": source_product,
         "sections": sections,
@@ -223,6 +366,30 @@ def create_session():
     return jsonify({"session_id": sid})
 
 
+# ── Recommendation click tracking (for CTR analytics) ────────────────
+@app.route("/api/recommend/click", methods=["POST"])
+def recommend_click():
+    body = request.get_json(silent=True) or {}
+    rec_log_id = body.get("rec_log_id")  # optional
+    product_id = body.get("product_id")
+    position = body.get("position")
+    session_id = body.get("session_id")
+    if not product_id:
+        return jsonify({"error": "product_id required"}), 400
+    if is_supabase_configured():
+        try:
+            client = get_supabase()
+            client.table("recommendation_clicks").insert({
+                "rec_log_id": rec_log_id,
+                "session_id": session_id,
+                "product_id": str(product_id),
+                "position": position,
+            }).execute()
+        except Exception as e:
+            print(f"⚠️  recommend_click log failed: {e}")
+    return jsonify({"ok": True})
+
+
 # ── Personalized Recommendations ──────────────────────────────────────
 @app.route("/api/recommend/personalized", methods=["POST"])
 def recommend_personalized():
@@ -264,6 +431,7 @@ def recommend_personalized():
     # Hybrid rank the aggregated results
     ranked = hybrid_rank(all_recs)[:top_n]
 
+    _log_recommendation("personalized", None, None, ranked)
     return jsonify({
         "recommendations": ranked,
         "personalized": True,
@@ -471,10 +639,12 @@ def ai_recommend():
     # Try LLM first; fall back to local engine so the chat is always useful.
     llm_reply = _try_openrouter(user_message)
     if llm_reply:
+        _log_recommendation("ai_chat", user_message, None, [])
         return jsonify({"reply": llm_reply, "source": "llm"})
 
     try:
         fallback = _build_fallback_reply(user_message)
+        _log_recommendation("ai_chat", user_message, None, [])
         return jsonify({"reply": fallback, "source": "engine"})
     except Exception as e:
         traceback.print_exc()
