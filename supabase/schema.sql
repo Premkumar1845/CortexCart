@@ -124,3 +124,115 @@ as $$
   order by max(ua.created_at) desc
   limit p_limit;
 $$;
+
+-- ============================================================
+-- AUTH + ADMIN + ANALYTICS (added for Login/Admin/Analytics)
+-- ============================================================
+
+-- ─── App Users (auth + roles) ───────────────────────────────
+-- Stores app-level accounts. Passwords are bcrypt hashes.
+-- The pre-existing `users` table is kept for anonymous session tracking.
+create table if not exists app_users (
+  id uuid primary key default gen_random_uuid(),
+  username text unique not null,
+  email text unique,
+  password_hash text not null,
+  role text not null default 'user' check (role in ('user', 'admin')),
+  is_active boolean not null default true,
+  full_name text,
+  last_login_at timestamp with time zone,
+  created_at timestamp with time zone default now()
+);
+
+create index if not exists idx_app_users_role on app_users(role);
+create index if not exists idx_app_users_created on app_users(created_at desc);
+
+-- ─── Auth Events (login/signup/logout audit) ─────────────────
+create table if not exists auth_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references app_users(id) on delete set null,
+  username text,
+  event text not null check (event in ('signup', 'login', 'logout', 'login_failed')),
+  ip_address text,
+  user_agent text,
+  created_at timestamp with time zone default now()
+);
+
+create index if not exists idx_auth_events_user on auth_events(user_id, created_at desc);
+create index if not exists idx_auth_events_event on auth_events(event, created_at desc);
+
+-- ─── Recommendation Logs (for analytics + click-through) ─────
+create table if not exists recommendation_logs (
+  id uuid primary key default gen_random_uuid(),
+  session_id text,
+  user_id uuid references app_users(id) on delete set null,
+  source text not null,                -- 'realtime' | 'smart' | 'personalized' | 'ai_chat' | 'batch'
+  query text,
+  source_product_id text,
+  recommended_ids jsonb default '[]',
+  result_count int default 0,
+  created_at timestamp with time zone default now()
+);
+
+create index if not exists idx_rec_logs_created on recommendation_logs(created_at desc);
+create index if not exists idx_rec_logs_source on recommendation_logs(source, created_at desc);
+
+-- ─── Recommendation Click-throughs ───────────────────────────
+create table if not exists recommendation_clicks (
+  id uuid primary key default gen_random_uuid(),
+  rec_log_id uuid references recommendation_logs(id) on delete cascade,
+  session_id text,
+  product_id text not null,
+  position int,
+  created_at timestamp with time zone default now()
+);
+
+create index if not exists idx_rec_clicks_log on recommendation_clicks(rec_log_id);
+
+-- ─── Search Logs ─────────────────────────────────────────────
+create table if not exists search_logs (
+  id uuid primary key default gen_random_uuid(),
+  session_id text,
+  user_id uuid references app_users(id) on delete set null,
+  query text not null,
+  result_count int default 0,
+  created_at timestamp with time zone default now()
+);
+
+create index if not exists idx_search_logs_created on search_logs(created_at desc);
+
+-- ─── Analytics Helpers ───────────────────────────────────────
+
+-- Daily signups (last 30 days)
+create or replace function analytics_daily_signups(days int default 30)
+returns table (day date, signups bigint)
+language sql stable as $$
+  select date_trunc('day', created_at)::date as day, count(*)::bigint as signups
+  from app_users
+  where created_at >= now() - (days || ' days')::interval
+  group by 1
+  order by 1;
+$$;
+
+-- Top viewed products
+create or replace function analytics_top_products(limit_n int default 10)
+returns table (product_id text, views bigint)
+language sql stable as $$
+  select product_id::text, count(*)::bigint as views
+  from user_activity
+  where action = 'view' and product_id is not null
+  group by 1
+  order by 2 desc
+  limit limit_n;
+$$;
+
+-- Daily activity counts by action
+create or replace function analytics_daily_activity(days int default 30)
+returns table (day date, action text, total bigint)
+language sql stable as $$
+  select date_trunc('day', created_at)::date as day, action, count(*)::bigint
+  from user_activity
+  where created_at >= now() - (days || ' days')::interval
+  group by 1, 2
+  order by 1;
+$$;
