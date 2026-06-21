@@ -9,3 +9,11 @@ python-dotenv==1.1.0
 requests==2.32.3
 supabase==2.13.0
 sentence-transformers==3.4.1
+PyJWT==2.9.0
+bcrypt==4.2.0
+# Optional ML pipeline accelerators (PDF-aligned stacking ensemble).
+# Uncomment locally / on Render to enable native LightGBM + NGBoost; the
+# ml_pipeline module gracefully falls back to scikit-learn ensembles when
+# they are not installed (keeps Vercel serverless bundle size small).
+# lightgbm==4.5.0
+# ngboost==0.5.5
