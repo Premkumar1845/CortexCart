@@ -1,4 +1,6 @@
-# CortexCart - Multi-Modal Product Recommendation System
+<h1 align="center">
+  <strong>CortexCart</strong>
+</h1>
 
 <p align="center">
   <strong>An AI-powered e-commerce recommendation engine built with Flask, React, and scikit-learn</strong>
