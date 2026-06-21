@@ -1,5 +1,9 @@
 .recs {
-    padding: 32px 24px 60px;
+    padding: clamp(24px, 4vw, 32px) clamp(16px, 4vw, 32px) 60px;
+    max-width: 1280px;
+    margin-inline: auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .recs-back {
@@ -24,17 +28,18 @@
 
 .recs-source {
     display: flex;
-    gap: 32px;
+    flex-wrap: wrap;
+    gap: clamp(20px, 3vw, 32px);
     background: var(--bg-card);
     border: 1px solid var(--border-glass);
     border-radius: var(--radius-lg);
-    padding: 28px;
+    padding: clamp(20px, 3vw, 28px);
     margin-bottom: 40px;
 }
 
 .recs-source-img {
-    width: 180px;
-    height: 180px;
+    width: clamp(140px, 18vw, 180px);
+    height: clamp(140px, 18vw, 180px);
     background: var(--bg-secondary);
     border-radius: var(--radius-md);
     display: flex;
@@ -50,7 +55,10 @@
 }
 
 .recs-source-info {
-    flex: 1;
+    flex: 1 1 280px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .recs-source-brand {
@@ -79,8 +87,9 @@
 .recs-source-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-    margin-top: 16px;
+    gap: 12px 16px;
+    margin-top: auto;
+    padding-top: 16px;
     font-size: 0.85rem;
     color: var(--text-secondary);
 }
@@ -103,6 +112,7 @@
 
 .recs-section-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
     margin-bottom: 20px;
@@ -111,9 +121,11 @@
 }
 
 .recs-section-header h2 {
-    font-size: 1.2rem;
+    font-size: clamp(1rem, 2.4vw, 1.2rem);
     font-weight: 700;
     color: var(--text-primary);
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .recs-section-icon {
@@ -162,8 +174,9 @@
 
 .recs-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+    gap: clamp(16px, 2vw, 24px);
+    align-items: stretch;
 }
 
 .recs-empty {
@@ -174,21 +187,14 @@
 }
 
 @media (max-width: 700px) {
-    .recs {
-        padding: 24px 16px 48px;
-    }
-
     .recs-source {
-        flex-direction: column;
         align-items: center;
         text-align: center;
-        padding: 20px;
         gap: 20px;
     }
 
-    .recs-source-img {
-        width: 140px;
-        height: 140px;
+    .recs-source-info {
+        align-items: center;
     }
 
     .recs-source-meta {
@@ -198,23 +204,9 @@
     .recs-source-name {
         font-size: 1.1rem;
     }
-
-    .recs-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 16px;
-    }
-
-    .recs-section-header h2 {
-        font-size: 1rem;
-    }
 }
 
 @media (max-width: 480px) {
-    .recs-source-img {
-        width: 120px;
-        height: 120px;
-    }
-
     .recs-source-name {
         font-size: 1rem;
     }
@@ -229,7 +221,7 @@
     }
 
     .recs-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
 
     .recs-section-header h2 {
