@@ -1,11 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Search, Upload, ArrowRight, Brain, Layers, Zap, Shield, Star, TrendingUp } from 'lucide-react';
+import { Sparkles, Search, Upload, ArrowRight, Brain, Layers, Zap, Shield, Star, TrendingUp, ShieldCheck, User as UserIcon, Cpu, Network, FlaskConical } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
+import Particles from '../components/Particles';
+import { useAuth } from '../context/AuthContext';
 import { getPersonalizedRecommendations } from '../services/api';
 import './HomePage.css';
+
+// Animated count-up hook (RecoML-inspired easing over fixed step count)
+function useCountUp(target, { steps = 60, intervalMs = 18 } = {}) {
+    const [val, setVal] = useState(0);
+    const startedRef = useRef(false);
+    useEffect(() => {
+        if (startedRef.current) return;
+        startedRef.current = true;
+        let step = 0;
+        const id = setInterval(() => {
+            step += 1;
+            setVal(Math.round((target * step) / steps));
+            if (step >= steps) clearInterval(id);
+        }, intervalMs);
+        return () => clearInterval(id);
+    }, [target, steps, intervalMs]);
+    return val;
+}
 
 export default function HomePage() {
     const [query, setQuery] = useState('');
@@ -13,6 +33,12 @@ export default function HomePage() {
     const [personalizedLoading, setPersonalizedLoading] = useState(true);
     const [isPersonalized, setIsPersonalized] = useState(false);
     const navigate = useNavigate();
+    const { isAuthenticated, isAdmin } = useAuth();
+
+    const products = useCountUp(94000);
+    const brands = useCountUp(1400);
+    const layers = useCountUp(5);
+    const latency = useCountUp(100);
 
     useEffect(() => {
         async function loadPersonalized() {
@@ -71,6 +97,7 @@ export default function HomePage() {
 
     return (
         <div className="home">
+            <Particles count={28} />
             {/* ─── Hero ─── */}
             <section className="hero">
                 <motion.div
@@ -140,8 +167,92 @@ export default function HomePage() {
                             <Upload size={16} /> Batch Upload
                         </button>
                     </motion.div>
+
+                    {/* ─── Animated counter row (RecoML-inspired) ─── */}
+                    <motion.div
+                        className="hero-counters"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.95 }}
+                    >
+                        <div className="hero-counter">
+                            <div className="hero-counter-num">{products.toLocaleString()}+</div>
+                            <div className="hero-counter-label">Products Indexed</div>
+                        </div>
+                        <div className="hero-counter-divider" />
+                        <div className="hero-counter">
+                            <div className="hero-counter-num">{brands.toLocaleString()}+</div>
+                            <div className="hero-counter-label">Brands</div>
+                        </div>
+                        <div className="hero-counter-divider" />
+                        <div className="hero-counter">
+                            <div className="hero-counter-num">{layers}</div>
+                            <div className="hero-counter-label">Reco Layers</div>
+                        </div>
+                        <div className="hero-counter-divider" />
+                        <div className="hero-counter">
+                            <div className="hero-counter-num">&lt;{latency}ms</div>
+                            <div className="hero-counter-label">Avg Response</div>
+                        </div>
+                    </motion.div>
                 </div>
             </section>
+
+            {/* ─── Role-selection (RecoML-inspired admin/user portals) ─── */}
+            {!isAuthenticated && (
+                <section className="roles container">
+                    <div className="roles-head">
+                        <span className="hero-badge"><Sparkles size={14} /> Get Started</span>
+                        <h2>Choose Your Portal</h2>
+                        <p>Admins train, monitor and operate the engine. Users discover and shop with AI-powered guidance.</p>
+                    </div>
+                    <div className="roles-grid">
+                        <motion.div
+                            className="role-card admin"
+                            whileHover={{ y: -4 }}
+                            onClick={() => navigate('/login')}
+                        >
+                            <div className="role-icon"><ShieldCheck size={28} /></div>
+                            <h3>Administrator</h3>
+                            <p>Manage users · Live analytics · Re-seed embeddings · Inspect search & recommendation logs</p>
+                            <button className="role-btn primary">Admin Login →</button>
+                        </motion.div>
+                        <motion.div
+                            className="role-card user"
+                            whileHover={{ y: -4 }}
+                            onClick={() => navigate('/signup')}
+                        >
+                            <div className="role-icon"><UserIcon size={28} /></div>
+                            <h3>Shopper</h3>
+                            <p>Personalized recommendations · Batch CSV scoring · AI explanations · Smart catalog browse</p>
+                            <button className="role-btn secondary">Create Account →</button>
+                        </motion.div>
+                    </div>
+                </section>
+            )}
+
+            {isAuthenticated && (
+                <section className="roles container">
+                    <div className="roles-head">
+                        <span className="hero-badge"><Sparkles size={14} /> Welcome Back</span>
+                        <h2>{isAdmin ? 'Jump into operations' : 'Continue exploring'}</h2>
+                    </div>
+                    <div className="roles-grid">
+                        <motion.div className="role-card user" whileHover={{ y: -4 }} onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}>
+                            <div className="role-icon">{isAdmin ? <ShieldCheck size={28} /> : <UserIcon size={28} />}</div>
+                            <h3>{isAdmin ? 'Admin Dashboard' : 'My Dashboard'}</h3>
+                            <p>{isAdmin ? 'Analytics, users, ops & engine status.' : 'Browse, recommendations, batch & history.'}</p>
+                            <button className="role-btn primary">Open →</button>
+                        </motion.div>
+                        <motion.div className="role-card admin" whileHover={{ y: -4 }} onClick={() => navigate('/catalog')}>
+                            <div className="role-icon"><Search size={28} /></div>
+                            <h3>Explore Catalog</h3>
+                            <p>Search 94K+ products with semantic + hybrid ranking.</p>
+                            <button className="role-btn secondary">Browse →</button>
+                        </motion.div>
+                    </div>
+                </section>
+            )}
 
             {/* ─── Personalized / Featured Section ─── */}
             <section className="personalized container">
@@ -194,6 +305,51 @@ export default function HomePage() {
                         </motion.div>
                     ))}
                 </div>
+            </section>
+
+            {/* ─── ML Pipeline highlight (PDF-aligned) ─── */}
+            <section className="ml-pipeline container">
+                <motion.div
+                    className="ml-pipeline-card"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                >
+                    <div className="ml-pipeline-text">
+                        <span className="hero-badge">
+                            <Cpu size={14} /> Inside the Engine
+                        </span>
+                        <h2>
+                            A Stacking Ensemble of <span className="hero-gradient">Four Models</span>
+                        </h2>
+                        <p>
+                            HashingVectorizer text features fused with brand encoding and
+                            scaled pricing flow into a stack of Gradient Boosting, LightGBM
+                            and NGBoost — meta-learned by a Calibrated LinearSVC. Inspect
+                            the architecture, live metrics and run predictions in the browser.
+                        </p>
+                        <ul className="ml-pipeline-list">
+                            <li><Network size={16} /> Multi-modal sparse fusion (text + brand + price)</li>
+                            <li><Layers size={16} /> Stacking ensemble with calibrated meta-learner</li>
+                            <li><TrendingUp size={16} /> Live accuracy / precision / recall / F1 charts</li>
+                            <li><FlaskConical size={16} /> Interactive classifier playground</li>
+                        </ul>
+                        <button className="hero-cta-secondary" onClick={() => navigate('/insights')}>
+                            Open ML Insights <ArrowRight size={16} />
+                        </button>
+                    </div>
+                    <div className="ml-pipeline-visual">
+                        <div className="ml-pipeline-block input"><Brain size={18} /><span>text · brand · price</span></div>
+                        <div className="ml-pipeline-arrow" />
+                        <div className="ml-pipeline-block base">
+                            <div className="ml-pipeline-sub">GBC</div>
+                            <div className="ml-pipeline-sub">LGBM</div>
+                            <div className="ml-pipeline-sub">NGB</div>
+                        </div>
+                        <div className="ml-pipeline-arrow" />
+                        <div className="ml-pipeline-block meta"><Zap size={18} /><span>Calibrated LinearSVC</span></div>
+                    </div>
+                </motion.div>
             </section>
 
             {/* ─── Stats ─── */}
