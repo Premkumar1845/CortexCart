@@ -1,6 +1,9 @@
 .batch {
-    padding: 32px 24px 60px;
+    padding: clamp(24px, 4vw, 32px) clamp(16px, 4vw, 32px) 60px;
     max-width: 960px;
+    margin-inline: auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .batch-header {
@@ -58,7 +61,7 @@
 .batch-dropzone {
     border: 2px dashed var(--border-glass);
     border-radius: var(--radius-lg);
-    padding: 48px;
+    padding: clamp(28px, 6vw, 48px);
     text-align: center;
     cursor: pointer;
     transition: border-color var(--transition), background var(--transition);
@@ -91,11 +94,13 @@
 
 .batch-file-info {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 12px;
     color: var(--success);
     font-weight: 500;
+    word-break: break-word;
 }
 
 .batch-remove {
@@ -125,6 +130,7 @@
 
 .batch-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 32px;
 }
@@ -132,11 +138,14 @@
 .batch-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 12px 24px;
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 0.85rem;
+    min-height: 44px;
+    flex: 1 1 auto;
     transition: opacity var(--transition);
 }
 
@@ -162,6 +171,7 @@
 
 .batch-results-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
     margin-bottom: 24px;
@@ -169,15 +179,16 @@
 }
 
 .batch-results-header h2 {
-    font-size: 1.2rem;
+    font-size: clamp(1.05rem, 2.4vw, 1.2rem);
     font-weight: 700;
     color: var(--text-primary);
 }
 
 .batch-results-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+    gap: clamp(16px, 2vw, 24px);
+    align-items: stretch;
 }
 
 .batch-more {
@@ -188,34 +199,18 @@
 }
 
 @media (max-width: 768px) {
-    .batch {
-        padding: 24px 16px 48px;
-    }
-
     .batch-header h1 {
         font-size: 1.4rem;
     }
 
-    .batch-dropzone {
-        padding: 32px 20px;
-    }
-
-    .batch-actions {
-        flex-direction: column;
-    }
-
-    .batch-btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .batch-results-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 16px;
-    }
-
     .batch-info pre {
         font-size: 0.72rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .batch-results-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
 }
 
